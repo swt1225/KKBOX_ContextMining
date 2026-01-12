@@ -1,0 +1,17 @@
+# python -m pip install -r requirements.txt
+
+numpy>=1.23
+pandas>=2.0
+
+kkbox-developer-sdk>=1.0.0
+
+jieba>=0.42
+wordcloud>=1.9
+Pillow>=9.0
+
+matplotlib>=3.7
+seaborn>=0.12
+
+scikit-learn>=1.2
+
+PyQt5>=5.15

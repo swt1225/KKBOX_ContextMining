@@ -1,0 +1,347 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>歌手情境分析：雷達圖與關鍵字文字雲</title>
+
+    <!-- Chart.js for radar chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
+            max-width: 1100px;
+            margin: 32px auto;
+            padding: 0 16px;
+            color: #222;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        p.subtitle {
+            margin-top: 0;
+            margin-bottom: 24px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        #search-container {
+            position: relative;
+            width: 360px;
+        }
+
+        #artist-input {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        #suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            max-height: 180px;
+            overflow-y: auto;
+            background: #fff;
+            display: none;
+            z-index: 10;
+            box-sizing: border-box;
+        }
+
+        #suggestions div {
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #suggestions div:hover {
+            background-color: #eee;
+        }
+
+        #hint {
+            margin-top: 4px;
+            font-size: 12px;
+            color: #777;
+        }
+
+        #status {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        #main-panels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .panel {
+            flex: 1 1 400px;
+            min-width: 320px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 12px 16px;
+            box-sizing: border-box;
+        }
+
+        .panel h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        #wordcloud {
+            margin-top: 8px;
+            border: 1px solid #eee;
+            min-height: 360px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        #wordcloud img {
+            max-width: 100%;
+            max-height: 360px;
+            display: block;
+        }
+
+        canvas#radarCanvas {
+            max-width: 100%;
+            max-height: 360px;
+        }
+
+        @media (max-width: 768px) {
+            #main-panels {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>歌手情境分析儀表板</h1>
+    <p class="subtitle">
+        請輸入歌手名稱，系統會根據 KKBOX 上包含該歌手的 6 種情境歌單，
+        動態產生「情境雷達圖」與「歌單標題關鍵字文字雲」。
+    </p>
+
+    <div id="search-container">
+        <input
+            type="text"
+            id="artist-input"
+            placeholder="請輸入歌手名稱，例如：五月天、周杰倫"
+            autocomplete="off"
+        >
+        <div id="suggestions"></div>
+        <div id="hint">輸入時會在下方顯示模糊搜尋建議，請點選其中一位。</div>
+    </div>
+
+    <div id="status">尚未選擇歌手。</div>
+
+    <div id="main-panels">
+        <div class="panel">
+            <h3>六情境歌單分佈雷達圖</h3>
+            <canvas id="radarCanvas" width="400" height="400"></canvas>
+        </div>
+        <div class="panel">
+            <h3>歌單標題關鍵字文字雲</h3>
+            <div id="wordcloud">
+                <span>請先選擇一位歌手以生成文字雲。</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById("artist-input");
+        const suggestions = document.getElementById("suggestions");
+        const statusEl = document.getElementById("status");
+        const wordcloudDiv = document.getElementById("wordcloud");
+        const radarCanvas = document.getElementById("radarCanvas");
+
+        let debounceTimer = null;
+        let radarChart = null;
+        let lastSuggestions = [];
+
+        // --- 模糊搜尋歌手名稱 ---
+        input.addEventListener("input", function () {
+            const q = input.value.trim();
+            if (!q) {
+                suggestions.style.display = "none";
+                suggestions.innerHTML = "";
+                lastSuggestions = [];
+                return;
+            }
+
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetch("/api/artists?q=" + encodeURIComponent(q))
+                    .then(res => res.json())
+                    .then(data => {
+                        lastSuggestions = data || [];
+                        suggestions.innerHTML = "";
+
+                        if (!data || data.length === 0) {
+                            suggestions.style.display = "none";
+                            return;
+                        }
+
+                        data.forEach(a => {
+                            const div = document.createElement("div");
+                            div.textContent = a.name;
+                            div.addEventListener("click", () => {
+                                input.value = a.name;
+                                suggestions.style.display = "none";
+                                loadArtistData(a.name, a.id);
+                            });
+                            suggestions.appendChild(div);
+                        });
+                        suggestions.style.display = "block";
+                    })
+                    .catch(err => {
+                        console.error("artist search error:", err);
+                    });
+            }, 300);
+        });
+
+        // Enter：若有建議，用第一個；沒有建議就用目前輸入文字（不保證存在）
+        input.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                suggestions.style.display = "none";
+
+                if (lastSuggestions && lastSuggestions.length > 0) {
+                    const a = lastSuggestions[0];
+                    input.value = a.name;
+                    loadArtistData(a.name, a.id);
+                } else {
+                    const name = input.value.trim();
+                    if (name) {
+                        loadArtistData(name, "");
+                    }
+                }
+            }
+        });
+
+        // 點選歌手候選後：同時載入雷達圖與文字雲
+        function loadArtistData(artistName, artistId) {
+            statusEl.textContent = "正在分析「" + artistName + "」的情境分佈與關鍵字...";
+            loadContextRadar(artistName, artistId);
+            loadWordcloud(artistName, artistId);
+        }
+
+        // --- 載入情境雷達圖 ---
+        function loadContextRadar(artistName, artistId) {
+            const url = "/api/context_radar?artist_name="
+                        + encodeURIComponent(artistName)
+                        + "&artist_id=" + encodeURIComponent(artistId)
+                        + "&t=" + Date.now();
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    const ctxLabels = data.contexts || [];
+                    const counts = data.counts || [];
+
+                    const ctx = radarCanvas.getContext("2d");
+
+                    if (radarChart) {
+                        radarChart.destroy();
+                    }
+
+                    if (!ctxLabels.length) {
+                        radarChart = new Chart(ctx, {
+                            type: "radar",
+                            data: {
+                                labels: ["工作/讀書", "失戀/分手", "告白/求婚", "運動", "派對/狂歡", "通勤/開車"],
+                                datasets: [{
+                                    label: artistName + "（無情境歌單資料）",
+                                    data: [0, 0, 0, 0, 0, 0],
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    r: {
+                                        beginAtZero: true,
+                                        ticks: { precision: 0 }
+                                    }
+                                }
+                            }
+                        });
+                        return;
+                    }
+
+                    radarChart = new Chart(ctx, {
+                        type: "radar",
+                        data: {
+                            labels: ctxLabels,
+                            datasets: [{
+                                label: artistName,
+                                data: counts,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    display: true
+                                }
+                            },
+                            scales: {
+                                r: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        precision: 0
+                                    }
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(err => {
+                    console.error("radar error:", err);
+                });
+        }
+
+        // --- 載入關鍵字文字雲 ---
+        function loadWordcloud(artistName, artistId) {
+            wordcloudDiv.innerHTML = "";
+
+            const img = document.createElement("img");
+            img.alt = "wordcloud";
+
+            const url = "/api/wordcloud?artist_name="
+                        + encodeURIComponent(artistName)
+                        + "&artist_id=" + encodeURIComponent(artistId)
+                        + "&t=" + Date.now();
+
+            img.src = url;
+
+            img.onload = function () {
+                statusEl.textContent = "完成「" + artistName + "」的情境分析。";
+            };
+            img.onerror = function () {
+                statusEl.textContent = "無法為「" + artistName + "」產生文字雲，可能沒有足夠的歌單資料。";
+                wordcloudDiv.innerHTML = "<span>無法產生文字雲。</span>";
+            };
+
+            wordcloudDiv.appendChild(img);
+        }
+    </script>
+</body>
+</html>
+
