@@ -45,8 +45,9 @@
 ## 3. 安裝
 
 ### 3.1 建立虛擬環境並安裝套件
-
+```bash
 python -m pip install -r requirements.txt
+```
 ---
 
 ## 4. KKBOX API 設定
