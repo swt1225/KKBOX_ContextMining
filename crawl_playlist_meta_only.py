@@ -11,9 +11,7 @@
 - data/kkbox_playlist_meta.csv
   欄位：playlist_id, title, description, image_url, status, error
 
-特性：
-- 支援 resume：若 out 檔已存在，會跳過已抓到的 playlist_id
-- 每 save_every 筆自動落盤，避免中途斷線重來
+
 """
 
 import argparse
@@ -131,10 +129,9 @@ def main():
         if done == 1 or done % 10 == 0:
             print(f"[Meta] {done}/{len(todo)} fetched... (last={pid}, status={status})")
 
-        # 定期落盤
         if done % args.save_every == 0:
             meta_df = pd.concat([meta_df, pd.DataFrame(new_rows)], ignore_index=True)
-            # 去重：以 playlist_id 為主，保留先出現的（通常是 ok）
+            # 去重：以 playlist_id 為主，保留先出現的
             meta_df["playlist_id"] = meta_df["playlist_id"].astype(str).str.strip()
             meta_df = meta_df.drop_duplicates(subset=["playlist_id"], keep="first")
 
@@ -145,7 +142,6 @@ def main():
 
         time.sleep(max(0.0, args.sleep))
 
-    # 收尾落盤
     if new_rows:
         meta_df = pd.concat([meta_df, pd.DataFrame(new_rows)], ignore_index=True)
         meta_df["playlist_id"] = meta_df["playlist_id"].astype(str).str.strip()

@@ -20,23 +20,7 @@ from typing import Optional, Tuple
 
 
 
-def is_chinese_name(name: str) -> bool:
-    """
-    視為『華語歌手』的規則：
-    - 只看括號外的文字是否包含至少一個中文字
-    - 括號可以是中括號（）、半形括號() 都會被處理
-      例如：
-        '周杰倫 (Jay Chou)'      -> True  （括號外有中文）
-        'Taylor Swift (泰勒絲)'  -> False （中文只出現在括號內）
-    """
-    if not isinstance(name, str):
-        return False
 
-    # 移除所有括號及其中內容（中英文括號都處理）
-    cleaned = re.sub(r'[\(\（][^)\）]*[\)\）]', '', name)
-
-    # 在括號外檢查是否有中文字
-    return re.search(r'[\u4e00-\u9fff]', cleaned) is not None
 
 
 def load_and_clean_raw(path: str = "data/kkbox_raw_data.csv") -> pd.DataFrame:
@@ -45,7 +29,6 @@ def load_and_clean_raw(path: str = "data/kkbox_raw_data.csv") -> pd.DataFrame:
     - 去掉缺失值
     - 去掉空白
     - 去除完全重複列
-    - 同一情境 + 同一歌單 + 同一歌手，只算一次
     """
     df = pd.read_csv(path)
 
@@ -61,10 +44,6 @@ def load_and_clean_raw(path: str = "data/kkbox_raw_data.csv") -> pd.DataFrame:
     for col in expected_cols:
         df[col] = df[col].astype(str).str.strip()
 
-    #df = df.drop_duplicates()
-
-    # 同一情境 + 同一歌單 + 同一歌手，只算一次
-    #df = df.drop_duplicates(subset=["context", "playlist_id", "artist"])
 
     return df
 

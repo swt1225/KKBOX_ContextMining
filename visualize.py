@@ -53,7 +53,6 @@ def _pick_cjk_font_path() -> str:
         "C:/Windows/Fonts/SourceHanSansTC-Regular.otf",
         "C:/Windows/Fonts/SourceHanSans-Regular.otf",
 
-        # 沒裝 Noto/SourceHan 才退而求其次（但可能缺字）
         "C:/Windows/Fonts/msjh.ttc",      # 繁中
         "C:/Windows/Fonts/msyh.ttc",      # 簡中
         "C:/Windows/Fonts/meiryo.ttc",    # 日文
@@ -103,8 +102,6 @@ def plot_context_wordcloud(context: str,
     if context not in lift_matrix.columns:
         raise ValueError(f"情境 '{context}' 不存在於 Lift 矩陣欄位中")
 
-    # 由於 lift_matrix 可能含 NaN（support 門檻濾除），需要先清掉 NaN，
-    # 否則 WordCloud 會在計算字體大小時拋出 "cannot convert float NaN to integer"。
     series = lift_matrix[context].dropna()
     series = series[series.replace([float("inf"), float("-inf")], pd.NA).notna()]
     series = series[series > 0]
@@ -146,13 +143,11 @@ def plot_context_wordcloud(context: str,
 
     plt.savefig(out_path, dpi=300)
     plt.close()
-    print(f"✅ 已輸出情境「{context}」代表歌手文字雲至 {out_path}")
+    print(f"已輸出情境「{context}」代表歌手文字雲至 {out_path}")
 
 
 if __name__ == "__main__":
-    # 範例：畫相似度熱力圖
     plot_keyword_similarity_heatmap()
 
-    # 範例：畫幾個情境的代表歌手文字雲
     for ctx in ["工作/讀書", "失戀/分手", "告白/求婚", "運動", "派對/狂歡", "通勤/開車"]:
         plot_context_wordcloud(ctx)

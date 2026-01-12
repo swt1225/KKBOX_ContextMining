@@ -67,7 +67,7 @@ CLIENT_SECRET = "YOUR_CLIENT_SECRET"
 
 ### Step A：依情境關鍵字爬取 raw data
 
-`crawl_kkbox.py` 直接執行：
+直接執行`crawl_kkbox.py` ，但需要自行申請API金鑰故不建議重新爬取
 
 >內建範例 `context_queries`可自行增刪關鍵字與情境，
 
@@ -132,7 +132,7 @@ python visualize.py
 
 輸出到：
 - `outputs/heatmap_context_similarity.png`
-- `outputs/wordcloud_<context>.png`（依情境）
+- `outputs/wordcloud_<context>.png`
 
 ---
 

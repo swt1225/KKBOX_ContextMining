@@ -8,10 +8,10 @@ from wordcloud import WordCloud
 import io
 
 from kkbox_client import get_kkbox_api
-import pickle   # 如果你用 playlist_pool.pkl
-# ...
+import pickle   
 
-# 6 個情境的關鍵字（可直接沿用你 crawl_kkbox 的版本）
+
+# 6 個情境的關鍵字
 CONTEXT_QUERIES = {
     "工作/讀書": [
         "工作", "上班", "上班族",
@@ -212,7 +212,7 @@ def extract_keywords_from_titles(titles, artist_name):
     stopwords.add(artist_name_clean)
     stopwords.add(artist_name_lower)
 
-    # 把括號內容去掉，用來過濾像「周杰倫 (Jay Chou)」這種重複資訊
+    # 把括號內容去掉
     def remove_parentheses(text):
         return re.sub(r"[\(\（][^)\）]*[\)\）]", "", text)
 
@@ -230,7 +230,7 @@ def extract_keywords_from_titles(titles, artist_name):
         if not w_clean:
             continue
 
-        # 長度 1 的字大多沒資訊（例如「的」、「之」）
+        # 長度 1 的字大多沒資訊（例如的、之）
         if len(w_clean) == 1:
             continue
 

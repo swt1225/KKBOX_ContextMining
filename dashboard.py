@@ -1123,15 +1123,15 @@ class Dashboard(QMainWindow):
         highlight_idx = None
         cur = (getattr(self, "current_artist_name", "") or "").strip()
         if cur:
-            # 1) 先用原字串精準比對（最快、最準）
+            # 1) 先用原字串
             if cur in names:
                 highlight_idx = names.index(cur)
             else:
-                # 2) 再用「去括號」後的名字比對（用於你那個 fallback：省略括號再找）
+                # 2) 再用去括號」後的名字比對
                 cur_base = _strip_parentheses(cur)
                 bases = [_strip_parentheses(nm) for nm in names]
                 if cur_base in bases:
-                    # 若有重名，取第一個（和 display_names 的 #1 #2 邏輯一致）
+                    # 若有重名，取第一個
                     highlight_idx = bases.index(cur_base)
 
         
@@ -1192,7 +1192,6 @@ class Dashboard(QMainWindow):
             kw = {}
             if highlight_idx is not None and i == highlight_idx:
                 kw["color"] = "red"
-                # 你若只想紅色不想粗體，就刪掉下一行
                 kw["fontweight"] = "bold"
             ax.text(coords[i, 0] -0.005, coords[i, 1] + 0.005, nm, fontsize=14, **kw)
 
@@ -1394,7 +1393,7 @@ class Dashboard(QMainWindow):
     def _set_artist_header(self, name: str, img_bytes):
         self.artist_name.setText(name or "（尚未選擇歌手）")
 
-        size = self.artist_img.width()  # 你現在是 72
+        size = self.artist_img.width()  
         self.artist_img.setPixmap(QPixmap())
 
         if img_bytes:
@@ -1441,7 +1440,7 @@ class Dashboard(QMainWindow):
         if img_bytes:
             self._image_url_cache[url] = img_bytes
 
-        # 只更新「目前仍在看的那位」的 header，避免競態（快速切換歌手）
+        # 只更新「目前仍在看的那位」的 header，避免快速切換歌手
         if token != self._artist_req_token:
             return
         if artist_name != self.current_artist_name:
@@ -1466,7 +1465,6 @@ class Dashboard(QMainWindow):
                 pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
             os.replace(tmp, LOCAL_STATE_PATH)
         except Exception:
-            # 不要因寫檔失敗讓 UI 整個掛掉
             print("[WARN] failed to save local state:")
             traceback.print_exc()
 
@@ -1489,16 +1487,16 @@ class Dashboard(QMainWindow):
             self.cache_list.clear()
             self.cache_rows = {}
 
-            # 依插入順序還原（pickle dict 在 py3.7+ 會保序）
+            # 依插入順序還原
             for artist_name, res in self.artist_cache.items():
-                # 只還原有效快取（has_playlists=True 的才會被你正常寫入）
+                # 只還原有效快取
                 if not (res or {}).get("has_playlists", True):
                     continue
                 self._cache_upsert(artist_name, (res or {}).get("artist_id", ""), res, persist=False)
 
             self._refresh_cache_row_states()
 
-            # 還原分群視覺化（df_raw 已在 _init_data() 載入後才可畫）
+            # 還原分群視覺化
             self._refresh_cluster_view()
             self._refresh_cache_row_states()
 
@@ -1561,7 +1559,7 @@ class Dashboard(QMainWindow):
             self.current_artist_id = ""
             self.current_artist_image_url = ""
             self._set_artist_header("", None)
-            # 你若有提示文字，可重設提示
+           
             self._set_radar_hint("請先選擇一位歌手。", True)
             self._set_wc_hint("等待輸入…", True)
             self.wordcloud.setPixmap(QPixmap())
@@ -1608,7 +1606,6 @@ class Dashboard(QMainWindow):
             latest_path = os.path.join(CLUSTER_EXPORT_DIR, "cluster_latest.png")
             hist_path = os.path.join(CLUSTER_EXPORT_DIR, f"cluster_pca_hier_{n}artists_{ts}.png")
 
-            # bbox_inches="tight" 可避免標籤/文字被切到
             self.scatter_canvas.fig.savefig(latest_path, dpi=200, bbox_inches="tight")
             self.scatter_canvas.fig.savefig(hist_path, dpi=200, bbox_inches="tight")
 
@@ -1625,8 +1622,6 @@ def main():
     configure_matplotlib_cjk_font()
 
     app = QApplication(sys.argv)
-
-    # Force Qt UI font to Microsoft JhengHei
     app.setFont(QFont("Microsoft JhengHei", 10))
 
     w = Dashboard()
