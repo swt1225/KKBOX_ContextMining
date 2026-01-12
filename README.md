@@ -30,39 +30,23 @@
 │  └─ qt_dashboard_state.pkl         # dashboard 狀態/快取（自動生成）
 └─ outputs/
    ├─ cluster_latest.png             # dashboard 輸出的最新分群圖
-   └─ ...                            # 歷史輸出（自動附時間戳）
+   ├─ wordcloud_xx.png	       # 六情境代表性歌手文字雲
+   └─                            
 ```
 
 ---
 
 ## 2. 環境需求
 
-- Python 3.9+（建議 3.10/3.11）
-- Windows 10/11（最友善：字型與 PyQt5）  
-  - 若在 Linux/macOS：仍可執行，但需自行處理 CJK 字型路徑（見「常見問題」）。
-
+- Python 3.9+
+- Windows 10/11
 ---
 
 ## 3. 安裝
 
 ### 3.1 建立虛擬環境並安裝套件
 
-Windows（PowerShell）：
-```bash
-python -m venv .venv
-.\.venv\Scripts\activate
-python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-```
-
-Linux/macOS：
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
 ---
 
 ## 4. KKBOX API 設定
@@ -77,16 +61,15 @@ CLIENT_ID = "YOUR_CLIENT_ID"
 CLIENT_SECRET = "YOUR_CLIENT_SECRET"
 ```
 
-安全建議：  
-- `config.py` **不要上傳到公開 repo**。若要版本管理，建議改成 `config.example.py`，並把 `config.py` 加進 `.gitignore`。
-
 ---
 
 ## 5. 資料產生流程（建議順序）
 
 ### Step A：依情境關鍵字爬取 raw data
 
-`crawl_kkbox.py` 內建範例 `context_queries`（可自行增刪關鍵字與情境），直接執行：
+`crawl_kkbox.py` 直接執行：
+
+>內建範例 `context_queries`可自行增刪關鍵字與情境，
 
 ```bash
 python crawl_kkbox.py
@@ -95,7 +78,6 @@ python crawl_kkbox.py
 輸出：
 - `data/kkbox_raw_data.csv`（必要）  
   欄位：`context, search_term, playlist_id, artist`
-- `data/kkbox_playlist_meta.csv`（基礎版：含 title/description）
 
 > 若 API 呼叫過快可提高 `sleep_sec`，避免觸發限制。
 
@@ -171,39 +153,10 @@ python dashboard.py
 
 ## 6. 常見問題（Troubleshooting）
 
-### 6.1 中文/日文/韓文字變方塊或缺字（Matplotlib / WordCloud）
+### 中文/日文/韓文字變方塊或缺字（Matplotlib / WordCloud）
 
 - `dashboard.py` 已嘗試自動選擇 Windows 上可用的 CJK 字型（如 Microsoft JhengHei）。  
 - `visualize.py` 的 WordCloud 會挑選常見 CJK 字型檔（例如 Noto/SourceHan 或 msjh.ttc）。
 
 若你不是 Windows 或字型路徑不同：  
 - 請在 `visualize.py` 的 `plot_context_wordcloud(font_path=...)` 明確指定字型檔（ttf/ttc/otf）。
-
-### 6.2 API 429 / 連線過快 / 斷線
-
-- 增加 sleep：
-  - `crawl_kkbox.py` 調整 `sleep_sec`
-  - `crawl_playlist_meta_only.py` 使用 `--sleep 0.6` 等更高值
-- 使用 resume：`crawl_playlist_meta_only.py` 若輸出 CSV 已存在，會跳過已抓到的 playlist_id。
-
-### 6.3 找不到 `data/kkbox_raw_data.csv`
-
-- 請先完成 Step A，或自行放入同名檔案到 `data/`  
-- 必要欄位（至少）：`context, search_term, playlist_id, artist`
-
----
-
-## 7. 開發建議（可選）
-
-- 把門檻與路徑改成可配置（例如 `.env` / `config.yaml`），避免在程式中手動改常數。
-- 建議為 `data/` 與 `outputs/` 建立 `.gitkeep` 或在 README 說明資料不入版控。
-- 若要擴充情境數量：請同步更新 `CONTEXT_ORDER`（dashboard）與 `CONTEXT_QUERIES`（爬蟲/分析）。
-
----
-
-## 8. 參考與致謝
-
-- KKBOX Open API / SDK：本專案使用 `kkbox-developer-sdk` 進行 OAuth 與 API 呼叫。
-- 文字雲：`wordcloud`
-- 分群與降維：`scikit-learn`（PCA / AgglomerativeClustering）
-- GUI：`PyQt5`
